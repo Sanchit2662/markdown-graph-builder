@@ -416,3 +416,94 @@ contextMenu.addEventListener("click", (e) => {
 
   contextMenu.style.display = "none";
 });
+
+// ---------- Keyboard shortcuts (E) ----------
+function wrapSelection(before, after) {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const value = editor.value;
+  const selected = value.slice(start, end);
+  const newText = before + selected + after;
+
+  editor.value = value.slice(0, start) + newText + value.slice(end);
+  editor.focus();
+  editor.selectionStart = start + before.length;
+  editor.selectionEnd = start + before.length + selected.length;
+
+  if (currentNote) {
+    notes[currentNote] = editor.value;
+    saveNotes();
+    updatePreview();
+    if (graphUpdateTimeout) clearTimeout(graphUpdateTimeout);
+    graphUpdateTimeout = setTimeout(buildKnowledgeGraph, 400);
+  }
+}
+
+function formatHeading() {
+  const start = editor.selectionStart;
+  const value = editor.value;
+  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+  const lineEnd = value.indexOf("\n", start);
+  const endPos = lineEnd === -1 ? value.length : lineEnd;
+
+  const line = value.slice(lineStart, endPos);
+  const newLine = line.startsWith("#") ? line : "# " + line;
+
+  editor.value = value.slice(0, lineStart) + newLine + value.slice(endPos);
+  editor.selectionStart = editor.selectionEnd = start + 2;
+
+  if (currentNote) {
+    notes[currentNote] = editor.value;
+    saveNotes();
+    updatePreview();
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  // ignore if typing in some other input, but allow editor and search
+  const target = e.target;
+  const isEditor = target === editor;
+  const isSearch = target === searchInput;
+
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
+    const key = e.key.toLowerCase();
+
+    // Ctrl+N → new note
+    if (key === "n") {
+      e.preventDefault();
+      newNoteBtn.click();
+    }
+
+    // Ctrl+S → save
+    if (key === "s") {
+      e.preventDefault();
+      saveNotes();
+      console.log("Notes saved.");
+    }
+
+    // Ctrl+F → focus search
+    if (key === "f") {
+      e.preventDefault();
+      if (searchInput) searchInput.focus();
+    }
+
+    // Formatting only in editor
+    if (isEditor) {
+      // Ctrl+B → bold
+      if (key === "b") {
+        e.preventDefault();
+        wrapSelection("**", "**");
+      }
+      // Ctrl+I → italic
+      if (key === "i") {
+        e.preventDefault();
+        wrapSelection("_", "_");
+      }
+      // Ctrl+H → heading
+      if (key === "h") {
+        e.preventDefault();
+        formatHeading();
+      }
+    }
+  }
+});
