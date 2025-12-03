@@ -81,14 +81,224 @@ document.addEventListener("mouseup", () => {
   isDraggingEP = false;
 });
 
+// ----------------------
+// Upload Modal Logic
+// ----------------------
+const uploadBtn = document.getElementById("uploadBtn");
+const uploadModal = document.getElementById("uploadModal");
+const closeModal = document.getElementById("closeModal");
+const dropArea = document.getElementById("dropArea");
+const fileInput = document.getElementById("fileInput");
+const driveBtn = document.getElementById("driveBtn");
 
-// Prevent modal from closing when clicking inside & close on outside
-
-uploadModal.addEventListener("click", (e) => {
-  if (e.target === uploadModal) uploadModal.style.display = "none";
+// Open modal
+uploadBtn.addEventListener("click", () => {
+  uploadModal.style.display = "flex";
 });
 
-// Prevent inside click
-document.querySelector(".modal-content").addEventListener("click", (e) => {
-  e.stopPropagation();
+// Close modal
+closeModal.addEventListener("click", () => {
+  uploadModal.style.display = "none";
+});
+
+// Clicking drop area triggers file input
+dropArea.addEventListener("click", () => fileInput.click());
+
+// Drag & Drop Events
+dropArea.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropArea.style.borderColor = "#6a6df0";
+});
+
+dropArea.addEventListener("dragleave", () => {
+  dropArea.style.borderColor = "#3a3b44";
+});
+
+dropArea.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropArea.style.borderColor = "#3a3b44";
+
+  const file = e.dataTransfer.files[0];
+  handleFile(file);
+});
+
+// Handle manual file input
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  handleFile(file);
+});
+
+// File processing function
+function handleFile(file) {
+  if (!file || !file.name.endsWith(".md")) {
+    alert("Please upload a markdown (.md) file");
+    return;
+  }
+
+  alert("Markdown file uploaded: " + file.name);
+  uploadModal.style.display = "none";
+
+  // NEXT STEP: send this to your parser later
+}
+
+// Google Drive button (UI Only for now)
+driveBtn.addEventListener("click", () => {
+  alert("Google Drive Picker coming next!");
+});
+
+// ---------------------------
+// Save notes to localStorage
+// ----------------------------
+function saveNotes() {
+  localStorage.setItem("notes", JSON.stringify(notes));
+}
+
+// ---------------------------
+// FILE → LIST → EDITOR LOGIC
+// ---------------------------
+const notesList = document.getElementById("notesList");
+const editor = document.getElementById("editor");
+
+// Load existing notes from localStorage
+let notes = JSON.parse(localStorage.getItem("notes")) || {};
+let currentNote = null;
+
+// Rebuild notes list on page load
+window.addEventListener("DOMContentLoaded", () => {
+  // Object.keys(notes).forEach(filename => {
+  //   addNoteToList(filename);
+  // });
+
+  notesList.innerHTML = "";   // clear duplicates
+  Object.keys(notes).forEach(addNoteToList);
+
+});
+
+
+// When a Markdown file is uploaded
+function handleFile(file) {
+  if (!file || !file.name.endsWith(".md")) {
+    alert("Please upload a markdown (.md) file");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    const content = e.target.result;
+
+    // Store file content
+    notes[file.name] = content;
+
+    saveNotes();      //local storage
+
+    hideEmptyTextAfterUpload();
+
+    // Add to sidebar
+    addNoteToList(file.name);
+
+    // Open immediately
+    openNote(file.name);
+
+    uploadModal.style.display = "none";
+  };
+
+  reader.readAsText(file);
+}
+
+
+// Create custom context menu
+const contextMenu = document.createElement("div");
+contextMenu.className = "note-context-menu";
+contextMenu.style.cssText = `
+  position: absolute;
+  background: #1d1e24;
+  border: 1px solid #2a2b32;
+  border-radius: 6px;
+  padding: 5px 0;
+  width: 130px;
+  z-index: 1000;
+  display: none;
+`;
+contextMenu.innerHTML = `
+  <div class="ctx-item" data-action="rename">Rename</div>
+  <div class="ctx-item" data-action="delete">Delete</div>
+`;
+document.body.appendChild(contextMenu);
+
+// Styling for menu items
+const style = document.createElement("style");
+style.textContent = `
+  .ctx-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #ddd;
+  }
+  .ctx-item:hover {
+    background: #333542;
+  }
+`;
+document.head.appendChild(style);
+
+// Hide menu on click anywhere
+document.addEventListener("click", () => {
+  contextMenu.style.display = "none";
+});
+
+// updated addNoteToList with right click listener
+function addNoteToList(filename) {
+  const li = document.createElement("li");
+  li.classList.add("note-item");
+  li.textContent = filename;
+
+  li.addEventListener("click", () => openNote(filename));
+
+  // RIGHT CLICK MENU
+  li.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+
+    // Store which note was right-clicked
+    contextMenu.dataset.target = filename;
+
+    contextMenu.style.left = e.pageX + "px";
+    contextMenu.style.top = e.pageY + "px";
+    contextMenu.style.display = "block";
+  });
+
+  notesList.appendChild(li);
+}
+
+
+// Open note in editor
+function openNote(filename) {
+  currentNote = filename;
+
+  // highlight active note
+  document.querySelectorAll(".note-item").forEach(n => {
+    n.classList.remove("active");
+    if (n.textContent === filename) n.classList.add("active");
+  });
+
+  // Load content into editor
+  editor.value = notes[filename];
+}
+
+// Clicking anywhere should deactivate the active note
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".note-item") && !e.target.closest("#editor")) {
+    document.querySelectorAll(".note-item.active")
+      .forEach(n => n.classList.remove("active"));
+    currentNote = null;
+    editor.value = "";
+  }
+});
+
+
+// Save edits live
+editor.addEventListener("input", () => {
+  if (currentNote) {
+    notes[currentNote] = editor.value;
+    saveNotes();
+  }
 });
