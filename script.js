@@ -146,6 +146,16 @@ driveBtn.addEventListener("click", () => {
   alert("Google Drive Picker coming next!");
 });
 
+// Prevent modal from closing when clicking inside & close on outside
+uploadModal.addEventListener("click", (e) => {
+  if (e.target === uploadModal) uploadModal.style.display = "none";
+});
+
+// Prevent inside click
+document.querySelector(".modal-content").addEventListener("click", (e) => {
+  e.stopPropagation();
+});
+
 // ---------------------------
 // Save notes to localStorage
 // ----------------------------
@@ -301,4 +311,108 @@ editor.addEventListener("input", () => {
     notes[currentNote] = editor.value;
     saveNotes();
   }
+});
+
+// ---------------------------
+// NEW NOTE BUTTON
+// ---------------------------
+const newNoteBtn = document.querySelector(".new-note-btn");
+
+// Generate unique untitled names
+function generateUntitledName() {
+  const base = "Untitled";
+  let n = 1;
+
+  // Collect ALL existing note names from notes + notesList UI
+  const existing = new Set(Object.keys(notes));
+
+  [...notesList.children].forEach(li => existing.add(li.textContent.trim()));
+
+  let name = `${base}.md`;
+  while (existing.has(name)) {
+    n++;
+    name = `${base} ${n}.md`;
+  }
+  return name;
+}
+
+
+// When clicking + New Note
+newNoteBtn.addEventListener("click", () => {
+  const filename = generateUntitledName();
+  const content = ""; // empty file
+
+  notes[filename] = content;
+  addNoteToList(filename);
+  openNote(filename);
+
+  saveNotes();
+
+  updateEmptyText();
+
+});
+
+// --------------------------------
+// rename/delete button
+// --------------------------------
+contextMenu.addEventListener("click", (e) => {
+  const action = e.target.dataset.action;
+  const filename = contextMenu.dataset.target;
+
+  if (!filename) return;
+
+  // RENAME
+  if (action === "rename") {
+    const newName = prompt("Rename note:", filename);
+    if (!newName || newName.trim() === "" || !newName.endsWith(".md")) {
+      alert("Filename must end with .md");
+      return;
+    }
+    if (notes[newName]) {
+      alert("A file with that name already exists.");
+      return;
+    }
+
+    // move content
+    notes[newName] = notes[filename];
+    delete notes[filename];
+
+    saveNotes();
+
+
+    // update UI
+    [...notesList.children].forEach(li => {
+      if (li.textContent === filename) {
+        li.textContent = newName;
+      }
+    });
+
+    // reopen note
+    openNote(newName);
+  }
+
+  // DELETE
+  if (action === "delete") {
+    if (!confirm(`Delete "${filename}" ?`)) return;
+
+    delete notes[filename];
+
+    saveNotes();
+
+
+    // remove from UI
+    [...notesList.children].forEach(li => {
+      if (li.textContent === filename) li.remove();
+    });
+
+    hideTextAfterDelete();
+
+    // close editor if currently open
+    if (currentNote === filename) {
+      editor.value = "";
+      currentNote = null;
+    }
+  }
+
+  contextMenu.style.display = "none";
 });
