@@ -45,41 +45,7 @@ document.addEventListener("mouseup", () => {
 });
 
 
-
-/* ============================================================
-   RESIZE EDITOR <-> PREVIEW
-   ============================================================ */
-
-const editorArea = document.querySelector(".editor-area");
-const previewArea = document.querySelector(".preview-pane");
-const dragEP = document.getElementById("drag-editor-preview");
-
-let isDraggingEP = false;
-
-dragEP.addEventListener("mousedown", () => {
-  isDraggingEP = true;
-});
-
-document.addEventListener("mousemove", (e) => {
-  if (!isDraggingEP) return;
-
-  const totalWidth = centerPanel.clientWidth;
-  const leftWidth = e.clientX - centerPanel.getBoundingClientRect().left;
-
-  // Convert to %
-  let editorPercent = (leftWidth / totalWidth) * 100;
-
-  // clamp (minimum 20%, maximum 80%)
-  if (editorPercent < 20) editorPercent = 20;
-  if (editorPercent > 80) editorPercent = 80;
-
-  editorArea.style.width = editorPercent + "%";
-  previewArea.style.width = (100 - editorPercent) + "%";
-});
-
-document.addEventListener("mouseup", () => {
-  isDraggingEP = false;
-});
+// -------------------------------------------------------------------------------------------
 
 // ----------------------
 // Upload Modal Logic
@@ -146,28 +112,18 @@ driveBtn.addEventListener("click", () => {
   alert("Google Drive Picker coming next!");
 });
 
-// Prevent modal from closing when clicking inside & close on outside
-uploadModal.addEventListener("click", (e) => {
-  if (e.target === uploadModal) uploadModal.style.display = "none";
-});
-
-// Prevent inside click
-document.querySelector(".modal-content").addEventListener("click", (e) => {
-  e.stopPropagation();
-});
-
-// ---------------------------
-// Save notes to localStorage
-// ----------------------------
-function saveNotes() {
-  localStorage.setItem("notes", JSON.stringify(notes));
-}
-
 // ---------------------------
 // FILE → LIST → EDITOR LOGIC
 // ---------------------------
 const notesList = document.getElementById("notesList");
 const editor = document.getElementById("editor");
+
+// let notes = {};        // store filename → content
+// let currentNote = null;
+
+// ---------------------------
+// LOCAL STORAGE INIT
+// ---------------------------
 
 // Load existing notes from localStorage
 let notes = JSON.parse(localStorage.getItem("notes")) || {};
@@ -313,6 +269,8 @@ editor.addEventListener("input", () => {
   }
 });
 
+// -----------------------------------------------------------------------------
+
 // ---------------------------
 // NEW NOTE BUTTON
 // ---------------------------
@@ -352,9 +310,9 @@ newNoteBtn.addEventListener("click", () => {
 
 });
 
-// --------------------------------
-// rename/delete button
-// --------------------------------
+
+//////////////////////////////-------------------------------------------------------
+// from here[[[[[[[[[]]]]]]]]]
 contextMenu.addEventListener("click", (e) => {
   const action = e.target.dataset.action;
   const filename = contextMenu.dataset.target;
@@ -417,6 +375,377 @@ contextMenu.addEventListener("click", (e) => {
   contextMenu.style.display = "none";
 });
 
+
+// ---------------------------
+// Save notes to localStorage
+// ----------------------------
+function saveNotes() {
+  localStorage.setItem("notes", JSON.stringify(notes));
+}
+
+
+/* ============================================================
+   HIDE / SHOW "No notes yet" TEXT
+   ============================================================ */
+
+const emptyText = document.querySelector(".empty-text");
+
+// Function to update the visibility
+function updateEmptyText() {
+  if (notesList.children.length > 0) {
+    emptyText.style.display = "none";
+  } else {
+    emptyText.style.display = "block";
+  }
+}
+
+/* --- CALL ON PAGE LOAD --- */
+window.addEventListener("DOMContentLoaded", updateEmptyText);
+
+/* --- CALL WHEN NEW NOTE IS CREATED --- */
+// newNoteBtn.addEventListener("click", () => {
+//   updateEmptyText();
+// });
+
+/* --- CALL WHEN FILE IS UPLOADED --- */
+function hideEmptyTextAfterUpload() {
+  updateEmptyText();
+}
+
+/* --- CALL WHEN NOTE IS DELETED --- */
+function hideTextAfterDelete() {
+  updateEmptyText();
+}
+// //////////////////////////////////herre 2 22 
+/* ============================================================
+   ADDED FEATURES: PREVIEW, GRAPH, SEARCH, SHORTCUTS, EXPORT
+   ============================================================ */
+
+// ---------- Markdown Preview (A) ----------
+const previewPane = document.getElementById("preview");
+
+function updatePreview() {
+  if (!previewPane) return;
+  const content = currentNote ? (notes[currentNote] || "") : "";
+  if (!content.trim()) {
+    previewPane.innerHTML = '<div class="preview-placeholder">Rendered preview will appear here.</div>';
+    return;
+  }
+  if (window.marked) {
+    previewPane.innerHTML = marked.parse(content);
+  } else {
+    previewPane.textContent = content;
+  }
+}
+
+// Extra listener for preview + graph while typing
+let graphUpdateTimeout = null;
+editor.addEventListener("input", () => {
+  updatePreview();
+
+  if (graphUpdateTimeout) clearTimeout(graphUpdateTimeout);
+  graphUpdateTimeout = setTimeout(buildKnowledgeGraph, 400);
+});
+
+// ---------- Knowledge Graph (B, C, Option 2) ----------
+const graphContainer = document.getElementById("graphNetwork");
+const graphTooltip = document.getElementById("graphTooltip");
+const graphPlaceholder = document.querySelector(".graph-placeholder");
+
+let network = null;
+let nodesDS = null;
+let edgesDS = null;
+
+// Extract links from a single note content
+function extractLinks(content) {
+  const targets = new Set();
+
+  // Markdown links: [text](Note.md)
+  const mdRegex = /\[[^\]]+\]\(([^)]+)\)/g;
+  let match;
+  while ((match = mdRegex.exec(content)) !== null) {
+    let target = match[1].trim();
+    if (!target) continue;
+    // Only consider .md or if note key exists
+    if (notes[target]) {
+      targets.add(target);
+    } else if (notes[target + ".md"]) {
+      targets.add(target + ".md");
+    }
+  }
+
+  // Wiki links: [[Note]]
+  const wikiRegex = /\[\[([^\]]+)\]\]/g;
+  let m2;
+  while ((m2 = wikiRegex.exec(content)) !== null) {
+    let targetName = m2[1].trim();
+    if (!targetName) continue;
+    if (notes[targetName]) {
+      targets.add(targetName);
+    } else if (notes[targetName + ".md"]) {
+      targets.add(targetName + ".md");
+    }
+  }
+
+  return Array.from(targets);
+}
+
+function buildKnowledgeGraph() {
+  if (!graphContainer) return;
+
+  const fileNames = Object.keys(notes);
+  if (fileNames.length === 0) {
+    if (graphPlaceholder) graphPlaceholder.style.display = "block";
+    if (network) {
+      network.destroy();
+      network = null;
+    }
+    return;
+  } else {
+    if (graphPlaceholder) graphPlaceholder.style.display = "none";
+  }
+
+  const nodes = [];
+  const edges = [];
+  const degreeCount = {};
+
+  // initialize degree count
+  fileNames.forEach(name => {
+    degreeCount[name] = 0;
+  });
+
+  // create edges
+  fileNames.forEach(source => {
+    const content = notes[source] || "";
+    const targets = extractLinks(content);
+    targets.forEach(target => {
+      if (!notes[target] || target === source) return;
+
+      edges.push({ from: source, to: target });
+
+      degreeCount[source] = (degreeCount[source] || 0) + 1;
+      degreeCount[target] = (degreeCount[target] || 0) + 1;
+    });
+  });
+
+  // create nodes with size based on degree
+  fileNames.forEach(name => {
+    const baseLabel = name.endsWith(".md") ? name.slice(0, -3) : name;
+    const deg = degreeCount[name] || 0;
+
+    nodes.push({
+      id: name,
+      label: baseLabel,
+      value: 5 + deg * 2, // node size
+      font: { size: 12 }
+    });
+  });
+
+  nodesDS = new vis.DataSet(nodes);
+  edgesDS = new vis.DataSet(edges);
+
+  const data = {
+    nodes: nodesDS,
+    edges: edgesDS
+  };
+
+  const options = {
+    nodes: {
+      shape: "dot",
+      scaling: {
+        min: 5,
+        max: 30
+      },
+      color: {
+        background: "#2b2e3a",
+        border: "#6a6df0",
+        highlight: {
+          background: "#6a6df0",
+          border: "#ffffff"
+        }
+      },
+      font: {
+        color: "#e4e4e4",
+        size: 12
+      }
+    },
+    edges: {
+      color: {
+        color: "#555a70",
+        highlight: "#9ea5ff"
+      },
+      arrows: "to",
+      smooth: true
+    },
+    interaction: {
+      hover: true,
+      multiselect: false,
+      dragNodes: true,
+      zoomView: true,
+      dragView: true
+    },
+    physics: {
+      enabled: true,
+      stabilization: {
+        iterations: 150
+      }
+    }
+  };
+
+  if (network) {
+    network.destroy();
+  }
+
+  network = new vis.Network(graphContainer, data, options);
+
+  // Click node → open note
+  network.on("click", (params) => {
+    if (params.nodes && params.nodes.length > 0) {
+      const id = params.nodes[0];
+      openNote(id);
+    }
+  });
+
+  // Show snippet in tooltip on select
+  network.on("selectNode", (params) => {
+    const id = params.nodes[0];
+    showGraphSnippet(id);
+    highlightActiveNode(id);
+  });
+
+  // Clear tooltip when unselect
+  network.on("deselectNode", () => {
+    graphTooltip.innerHTML = "";
+  });
+
+  // After building, highlight current note if any
+  if (currentNote) {
+    highlightActiveNode(currentNote);
+  }
+}
+
+function showGraphSnippet(filename) {
+  if (!graphTooltip) return;
+  const content = notes[filename] || "";
+  const snippet = content.split("\n").slice(0, 6).join("\n").slice(0, 500);
+  const displayName = filename.endsWith(".md") ? filename.slice(0, -3) : filename;
+
+  graphTooltip.innerHTML = `
+    <strong>${displayName}</strong>
+    <pre>${snippet.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+  `;
+}
+
+function highlightActiveNode(filename) {
+  if (!network || !nodesDS) return;
+
+  const allNodes = nodesDS.get();
+  const updates = [];
+
+  // Get neighbors
+  const connected = network.getConnectedNodes(filename);
+
+  allNodes.forEach(node => {
+    let color = "#2b2e3a";
+    let border = "#6a6df0";
+
+    if (node.id === filename) {
+      color = "#6a6df0";
+      border = "#ffffff";
+    } else if (connected.includes(node.id)) {
+      color = "#3b3f5a";
+      border = "#9ea5ff";
+    }
+
+    updates.push({
+      id: node.id,
+      color: {
+        background: color,
+        border: border
+      }
+    });
+  });
+
+  nodesDS.update(updates);
+}
+
+// Build graph initially after DOM loaded and notes loaded
+window.addEventListener("DOMContentLoaded", () => {
+  buildKnowledgeGraph();
+});
+
+// ---------- Wrap openNote to hook preview, graph, last-opened (I) ----------
+const _originalOpenNote = openNote;
+openNote = function (filename) {
+  _originalOpenNote(filename);
+
+  // Update last opened note
+  localStorage.setItem("lastOpenedNote", filename);
+
+  // Update preview and graph highlight
+  updatePreview();
+  buildKnowledgeGraph();
+  highlightActiveNode(filename);
+};
+
+// Auto-open last edited note on load (I)
+window.addEventListener("DOMContentLoaded", () => {
+  const last = localStorage.getItem("lastOpenedNote");
+  if (last && notes[last]) {
+    openNote(last);
+  }
+});
+
+// ---------- Search bar (D) ----------
+const searchInput = document.getElementById("searchNotes");
+
+function updateGraphSearchHighlight(term) {
+  if (!nodesDS) return;
+  const lc = term.toLowerCase();
+  const allNodes = nodesDS.get();
+  const updates = [];
+
+  allNodes.forEach(node => {
+    const match = node.label.toLowerCase().includes(lc);
+    updates.push({
+      id: node.id,
+      borderWidth: match && lc ? 3 : 1
+    });
+  });
+
+  nodesDS.update(updates);
+}
+
+if (searchInput) {
+  searchInput.addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase();
+
+    // Filter note list
+    [...notesList.children].forEach(li => {
+      const text = li.textContent.toLowerCase();
+      const match = text.includes(q);
+      li.style.display = match ? "" : "none";
+
+      if (match && q) {
+        li.classList.add("search-hit");
+      } else {
+        li.classList.remove("search-hit");
+      }
+    });
+
+    // Highlight in graph
+    updateGraphSearchHighlight(q);
+  });
+}
+
+// Also store last opened note whenever clicking a note item
+notesList.addEventListener("click", (e) => {
+  if (e.target.classList.contains("note-item")) {
+    const name = e.target.textContent.trim();
+    localStorage.setItem("lastOpenedNote", name);
+  }
+});
+// herw--------
 // ---------- Keyboard shortcuts (E) ----------
 function wrapSelection(before, after) {
   const start = editor.selectionStart;
@@ -506,4 +835,117 @@ document.addEventListener("keydown", (e) => {
       }
     }
   }
+});
+
+// ---------- Export / Import (F) ----------
+const exportBtn = document.getElementById("exportBtn");
+const importBtn = document.getElementById("importBtn");
+const importInput = document.getElementById("importInput");
+
+if (exportBtn) {
+  exportBtn.addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(notes, null, 2)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "notes-export.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
+
+if (importBtn && importInput) {
+  importBtn.addEventListener("click", () => {
+    importInput.click();
+  });
+
+  importInput.addEventListener("change", () => {
+    const file = importInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (typeof imported !== "object" || Array.isArray(imported)) {
+          throw new Error("Invalid format");
+        }
+
+        // Merge imported notes
+        Object.keys(imported).forEach(name => {
+          // if already exists, we keep existing; you can change behavior
+          if (!notes[name]) {
+            notes[name] = imported[name];
+            addNoteToList(name);
+          }
+        });
+
+        saveNotes();
+        updateEmptyText();
+        buildKnowledgeGraph();
+      } catch (err) {
+        alert("Failed to import notes: " + err.message);
+      }
+    };
+
+    reader.readAsText(file);
+  });
+}
+
+// ---------- Ensure preview in sync on first load ----------
+window.addEventListener("DOMContentLoaded", () => {
+  updatePreview();
+});
+
+
+
+/* ============================================================
+   RESIZE EDITOR <-> PREVIEW
+   ============================================================ */
+
+const editorArea = document.querySelector(".editor-area");
+const previewArea = document.querySelector(".preview-pane");
+const dragEP = document.getElementById("drag-editor-preview");
+
+let isDraggingEP = false;
+
+dragEP.addEventListener("mousedown", () => {
+  isDraggingEP = true;
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (!isDraggingEP) return;
+
+  const totalWidth = centerPanel.clientWidth;
+  const leftWidth = e.clientX - centerPanel.getBoundingClientRect().left;
+
+  // Convert to %
+  let editorPercent = (leftWidth / totalWidth) * 100;
+
+  // clamp (minimum 20%, maximum 80%)
+  if (editorPercent < 20) editorPercent = 20;
+  if (editorPercent > 80) editorPercent = 80;
+
+  editorArea.style.width = editorPercent + "%";
+  previewArea.style.width = (100 - editorPercent) + "%";
+});
+
+document.addEventListener("mouseup", () => {
+  isDraggingEP = false;
+});
+
+
+// Prevent modal from closing when clicking inside & close on outside
+
+uploadModal.addEventListener("click", (e) => {
+  if (e.target === uploadModal) uploadModal.style.display = "none";
+});
+
+// Prevent inside click
+document.querySelector(".modal-content").addEventListener("click", (e) => {
+  e.stopPropagation();
 });
