@@ -13,7 +13,7 @@ body, html {
 }
 
 /* Video background */
-#bg-video {
+body {
     position: fixed;
     top: 0;
     left: 0;
@@ -21,6 +21,8 @@ body, html {
     height: 100%;
     object-fit: cover;
     z-index: -1;
+    background-image: url("image 2.jpg");
+    background-size: cover;
 }
 
 /* Navbar */
@@ -83,12 +85,6 @@ body, html {
 
 /* ---main page ----*/
 /* Global Styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: Inter, sans-serif;
-}
 
 body {
   background-color: #0f1116;
