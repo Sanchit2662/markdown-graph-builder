@@ -25,11 +25,9 @@
 
       <!-- Added: Export / Import buttons -->
       <button class="top-btn" id="exportBtn">Export</button>
-      <!-- <button class="top-btn" id="importBtn">Import</button> -->
+      <button class="top-btn" id="importBtn">Import</button>
       <input type="file" id="importInput" accept=".json" style="display:none">
-      <!-- <button class="top-btn">New Note</button> -->
-      <!-- <span class="icon">🔍</span>
-      <span class="icon">⚙️</span> -->
+      
     </div>
   </header>
 
@@ -109,5 +107,30 @@
   </div>
 
   <script src="script.js"></script>
+
+  <script>
+  function onGapiLoad() {
+    if (window.gapiLoaded){ gapiLoaded();
+    } else{
+      console.warn("not found gapiloaded");
+    }
+  }
+  function onGisLoad() {
+    if (window.gisLoaded){
+      gisLoaded();
+    }else{
+      console.warn("not found gisloaded");
+      
+    }
+  }
+  
+</script>
+
+
+  <script src="https://apis.google.com/js/api.js?onload=onGapiLoad"></script>
+  <script src="https://accounts.google.com/gsi/client" onload="onGisLoad()"></script>
+
+  <script src="https://apis.google.com/js/picker.js"></script>
+
 </body>
 </html>
