@@ -135,14 +135,15 @@ localStorage.lastOpenedNote
 - Fast load time  
 - Zero frameworks — pure JS, HTML, CSS  
 - Fully responsive  
-
-> *(Insert your performance screenshots here once ready.)*
+- 100 performance , 100 accessibity , 90 SEO , 96 best practice
+![alt text](image.png)
 
 ---
 
 ## 🌍 Live Demo  
 Add your hosted project link here:
 
+- https://sanchit2662.github.io/markdown-graph-builder/
 
 ---
 
