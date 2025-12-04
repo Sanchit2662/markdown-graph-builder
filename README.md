@@ -52,12 +52,19 @@ A powerful Obsidian-style Markdown editor that automatically builds an interacti
 ## 🗂️ Folder Structure
 
 📦 project-root
+
 ├── index.html           # Landing page (hero + steps)
+
 ├── main.html            # Editor + graph workspace
+
 ├── script.js            # App logic
+
 ├── style.css            # Complete UI styling
+
 ├── assets/              # Optional images/icons
+
 └── README.md
+
 
 
 ---
