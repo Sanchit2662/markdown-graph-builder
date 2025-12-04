@@ -271,12 +271,14 @@ function generateUntitledName() {
 
   const existing = new Set(Object.keys(notes));
 
-  [...notesList.children].forEach(li => existing.add(li.textContent.trim()));
+  if(notesList){
+    [...notesList.children].forEach(li => existing.add(li.textContent.trim()));
+  }
 
   let name = `${base}.md`;
   while (existing.has(name)) {
     n++;
-    name = `${base} ${n}.md`;
+    name = `${base}${n}.md`;
   }
   return name;
 }
@@ -438,29 +440,41 @@ let nodesDS = null;
 let edgesDS = null;
 
 // Extract links from a single note content
+
 function extractLinks(content) {
   const targets = new Set();
 
-  // Markdown links: [text](Note.md)
+  // 1. Standard Markdown links: [text](Note.md)
   const mdRegex = /\[[^\]]+\]\(([^)]+)\)/g;
   let match;
   while ((match = mdRegex.exec(content)) !== null) {
     let target = match[1].trim();
     if (!target) continue;
-    // Only consider .md or if note key exists
-    if (notes[target]) {
-      targets.add(target);
-    } else if (notes[target + ".md"]) {
-      targets.add(target + ".md");
+
+    // FIX: Use 'target', not 'targetName'
+    let clean = target; 
+
+    // Logic: If link is "Untitled", check if "Untitled.md" exists
+    if (!clean.endsWith(".md")) {
+      if (notes[clean + ".md"]) {
+        clean = clean + ".md";
+      }
+    }
+
+    // If the file exists in notes, add it
+    if (notes[clean]) {
+      targets.add(clean);
     }
   }
 
-  // Wiki links: [[Note]]
+  // 2. Wiki links: [[Note]]
   const wikiRegex = /\[\[([^\]]+)\]\]/g;
   let m2;
   while ((m2 = wikiRegex.exec(content)) !== null) {
     let targetName = m2[1].trim();
     if (!targetName) continue;
+    
+    // Check exact match or append .md
     if (notes[targetName]) {
       targets.add(targetName);
     } else if (notes[targetName + ".md"]) {
@@ -470,6 +484,7 @@ function extractLinks(content) {
 
   return Array.from(targets);
 }
+
 
 function buildKnowledgeGraph() {
   if (!graphContainer) return;
@@ -1036,7 +1051,37 @@ async function pickerCallback(data) {
   }
 }
 
+// reset button----
 
+const resetBtn = document.getElementById("resetBtn");
 
+resetBtn.addEventListener("click", () => {
+    const confirmed = confirm("Are you sure you want to reset everything? This will delete all notes permanently.");
 
+    if (!confirmed) return;
 
+    // Wipe localStorage
+    localStorage.removeItem("notes");
+    localStorage.removeItem("lastOpenedNote");
+
+    // Reset JS memory
+    notes = {};
+    currentNote = null;
+
+    // Clear UI
+    notesList.innerHTML = "";
+    editor.value = "";
+    previewPane.innerHTML = '<div class="preview-placeholder">Rendered preview will appear here.</div>';
+
+    // Reset empty state text
+    updateEmptyText();
+
+    // Clear graph
+    if (network) {
+        network.destroy();
+        network = null;
+    }
+    if (graphPlaceholder) graphPlaceholder.style.display = "block";
+
+    alert("All notes have been cleared.");
+});
