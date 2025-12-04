@@ -1,4 +1,4 @@
-// DRAGGING OF SIDE BARS-------------------------------------------------------------------------------
+
 const leftBar = document.getElementById("drag-left");
 const rightBar = document.getElementById("drag-right");
 
@@ -45,8 +45,6 @@ document.addEventListener("mouseup", () => {
 });
 
 
-// -------------------------------------------------------------------------------------------
-
 // ----------------------
 // Upload Modal Logic
 // ----------------------
@@ -57,20 +55,20 @@ const dropArea = document.getElementById("dropArea");
 const fileInput = document.getElementById("fileInput");
 const driveBtn = document.getElementById("driveBtn");
 
-// Open modal
+
 uploadBtn.addEventListener("click", () => {
   uploadModal.style.display = "flex";
 });
 
-// Close modal
+
 closeModal.addEventListener("click", () => {
   uploadModal.style.display = "none";
 });
 
-// Clicking drop area triggers file input
+
 dropArea.addEventListener("click", () => fileInput.click());
 
-// Drag & Drop Events
+
 dropArea.addEventListener("dragover", (e) => {
   e.preventDefault();
   dropArea.style.borderColor = "#6a6df0";
@@ -94,7 +92,7 @@ fileInput.addEventListener("change", () => {
   handleFile(file);
 });
 
-// File processing function
+
 function handleFile(file) {
   if (!file || !file.name.endsWith(".md")) {
     alert("Please upload a markdown (.md) file");
@@ -104,12 +102,11 @@ function handleFile(file) {
   alert("Markdown file uploaded: " + file.name);
   uploadModal.style.display = "none";
 
-  // NEXT STEP: send this to your parser later
 }
 
-// Google Drive button (UI Only for now)
+
 driveBtn.addEventListener("click", () => {
-  alert("Google Drive Picker coming next!");
+  openDrivePicker();
 });
 
 // ---------------------------
@@ -117,9 +114,6 @@ driveBtn.addEventListener("click", () => {
 // ---------------------------
 const notesList = document.getElementById("notesList");
 const editor = document.getElementById("editor");
-
-// let notes = {};        // store filename → content
-// let currentNote = null;
 
 // ---------------------------
 // LOCAL STORAGE INIT
@@ -129,11 +123,9 @@ const editor = document.getElementById("editor");
 let notes = JSON.parse(localStorage.getItem("notes")) || {};
 let currentNote = null;
 
-// Rebuild notes list on page load
+
 window.addEventListener("DOMContentLoaded", () => {
-  // Object.keys(notes).forEach(filename => {
-  //   addNoteToList(filename);
-  // });
+ 
 
   notesList.innerHTML = "";   // clear duplicates
   Object.keys(notes).forEach(addNoteToList);
@@ -141,7 +133,7 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// When a Markdown file is uploaded
+
 function handleFile(file) {
   if (!file || !file.name.endsWith(".md")) {
     alert("Please upload a markdown (.md) file");
@@ -153,17 +145,16 @@ function handleFile(file) {
   reader.onload = function (e) {
     const content = e.target.result;
 
-    // Store file content
+    
     notes[file.name] = content;
 
     saveNotes();      //local storage
 
     hideEmptyTextAfterUpload();
 
-    // Add to sidebar
+    
     addNoteToList(file.name);
 
-    // Open immediately
     openNote(file.name);
 
     uploadModal.style.display = "none";
@@ -192,7 +183,7 @@ contextMenu.innerHTML = `
 `;
 document.body.appendChild(contextMenu);
 
-// Styling for menu items
+
 const style = document.createElement("style");
 style.textContent = `
   .ctx-item {
@@ -211,7 +202,7 @@ document.addEventListener("click", () => {
   contextMenu.style.display = "none";
 });
 
-// updated addNoteToList with right click listener
+
 function addNoteToList(filename) {
   const li = document.createElement("li");
   li.classList.add("note-item");
@@ -235,21 +226,19 @@ function addNoteToList(filename) {
 }
 
 
-// Open note in editor
 function openNote(filename) {
   currentNote = filename;
 
-  // highlight active note
+
   document.querySelectorAll(".note-item").forEach(n => {
     n.classList.remove("active");
     if (n.textContent === filename) n.classList.add("active");
   });
 
-  // Load content into editor
+ 
   editor.value = notes[filename];
 }
 
-// Clicking anywhere should deactivate the active note
 
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".note-item") && !e.target.closest("#editor")) {
@@ -261,7 +250,6 @@ document.addEventListener("click", (e) => {
 });
 
 
-// Save edits live
 editor.addEventListener("input", () => {
   if (currentNote) {
     notes[currentNote] = editor.value;
@@ -269,7 +257,6 @@ editor.addEventListener("input", () => {
   }
 });
 
-// -----------------------------------------------------------------------------
 
 // ---------------------------
 // NEW NOTE BUTTON
@@ -281,7 +268,7 @@ function generateUntitledName() {
   const base = "Untitled";
   let n = 1;
 
-  // Collect ALL existing note names from notes + notesList UI
+
   const existing = new Set(Object.keys(notes));
 
   [...notesList.children].forEach(li => existing.add(li.textContent.trim()));
@@ -295,7 +282,6 @@ function generateUntitledName() {
 }
 
 
-// When clicking + New Note
 newNoteBtn.addEventListener("click", () => {
   const filename = generateUntitledName();
   const content = ""; // empty file
@@ -311,8 +297,6 @@ newNoteBtn.addEventListener("click", () => {
 });
 
 
-//////////////////////////////-------------------------------------------------------
-// from here[[[[[[[[[]]]]]]]]]
 contextMenu.addEventListener("click", (e) => {
   const action = e.target.dataset.action;
   const filename = contextMenu.dataset.target;
@@ -402,10 +386,7 @@ function updateEmptyText() {
 /* --- CALL ON PAGE LOAD --- */
 window.addEventListener("DOMContentLoaded", updateEmptyText);
 
-/* --- CALL WHEN NEW NOTE IS CREATED --- */
-// newNoteBtn.addEventListener("click", () => {
-//   updateEmptyText();
-// });
+
 
 /* --- CALL WHEN FILE IS UPLOADED --- */
 function hideEmptyTextAfterUpload() {
@@ -416,7 +397,7 @@ function hideEmptyTextAfterUpload() {
 function hideTextAfterDelete() {
   updateEmptyText();
 }
-// //////////////////////////////////herre 2 22 
+
 /* ============================================================
    ADDED FEATURES: PREVIEW, GRAPH, SEARCH, SHORTCUTS, EXPORT
    ============================================================ */
@@ -438,7 +419,7 @@ function updatePreview() {
   }
 }
 
-// Extra listener for preview + graph while typing
+
 let graphUpdateTimeout = null;
 editor.addEventListener("input", () => {
   updatePreview();
@@ -509,12 +490,12 @@ function buildKnowledgeGraph() {
   const edges = [];
   const degreeCount = {};
 
-  // initialize degree count
+  
   fileNames.forEach(name => {
     degreeCount[name] = 0;
   });
 
-  // create edges
+  
   fileNames.forEach(source => {
     const content = notes[source] || "";
     const targets = extractLinks(content);
@@ -598,7 +579,7 @@ function buildKnowledgeGraph() {
 
   network = new vis.Network(graphContainer, data, options);
 
-  // Click node → open note
+ 
   network.on("click", (params) => {
     if (params.nodes && params.nodes.length > 0) {
       const id = params.nodes[0];
@@ -606,19 +587,19 @@ function buildKnowledgeGraph() {
     }
   });
 
-  // Show snippet in tooltip on select
+  
   network.on("selectNode", (params) => {
     const id = params.nodes[0];
     showGraphSnippet(id);
     highlightActiveNode(id);
   });
 
-  // Clear tooltip when unselect
+ 
   network.on("deselectNode", () => {
     graphTooltip.innerHTML = "";
   });
 
-  // After building, highlight current note if any
+  
   if (currentNote) {
     highlightActiveNode(currentNote);
   }
@@ -642,7 +623,7 @@ function highlightActiveNode(filename) {
   const allNodes = nodesDS.get();
   const updates = [];
 
-  // Get neighbors
+  
   const connected = network.getConnectedNodes(filename);
 
   allNodes.forEach(node => {
@@ -669,7 +650,7 @@ function highlightActiveNode(filename) {
   nodesDS.update(updates);
 }
 
-// Build graph initially after DOM loaded and notes loaded
+
 window.addEventListener("DOMContentLoaded", () => {
   buildKnowledgeGraph();
 });
@@ -679,16 +660,16 @@ const _originalOpenNote = openNote;
 openNote = function (filename) {
   _originalOpenNote(filename);
 
-  // Update last opened note
+ 
   localStorage.setItem("lastOpenedNote", filename);
 
-  // Update preview and graph highlight
+  
   updatePreview();
   buildKnowledgeGraph();
   highlightActiveNode(filename);
 };
 
-// Auto-open last edited note on load (I)
+
 window.addEventListener("DOMContentLoaded", () => {
   const last = localStorage.getItem("lastOpenedNote");
   if (last && notes[last]) {
@@ -733,19 +714,19 @@ if (searchInput) {
       }
     });
 
-    // Highlight in graph
+   
     updateGraphSearchHighlight(q);
   });
 }
 
-// Also store last opened note whenever clicking a note item
+
 notesList.addEventListener("click", (e) => {
   if (e.target.classList.contains("note-item")) {
     const name = e.target.textContent.trim();
     localStorage.setItem("lastOpenedNote", name);
   }
 });
-// herw--------
+
 // ---------- Keyboard shortcuts (E) ----------
 function wrapSelection(before, after) {
   const start = editor.selectionStart;
@@ -789,7 +770,7 @@ function formatHeading() {
 }
 
 document.addEventListener("keydown", (e) => {
-  // ignore if typing in some other input, but allow editor and search
+  
   const target = e.target;
   const isEditor = target === editor;
   const isSearch = target === searchInput;
@@ -875,9 +856,9 @@ if (importBtn && importInput) {
           throw new Error("Invalid format");
         }
 
-        // Merge imported notes
+       
         Object.keys(imported).forEach(name => {
-          // if already exists, we keep existing; you can change behavior
+         
           if (!notes[name]) {
             notes[name] = imported[name];
             addNoteToList(name);
@@ -896,7 +877,7 @@ if (importBtn && importInput) {
   });
 }
 
-// ---------- Ensure preview in sync on first load ----------
+
 window.addEventListener("DOMContentLoaded", () => {
   updatePreview();
 });
@@ -939,7 +920,7 @@ document.addEventListener("mouseup", () => {
 });
 
 
-// Prevent modal from closing when clicking inside & close on outside
+
 
 uploadModal.addEventListener("click", (e) => {
   if (e.target === uploadModal) uploadModal.style.display = "none";
@@ -949,3 +930,113 @@ uploadModal.addEventListener("click", (e) => {
 document.querySelector(".modal-content").addEventListener("click", (e) => {
   e.stopPropagation();
 });
+
+/* ================================
+   GOOGLE DRIVE PICKER
+================================ */
+
+const CLIENT_ID = "364956694336-71kq54bm418a6fs159aq0uog4dpp5472.apps.googleusercontent.com";
+const API_KEY = "AIzaSyCiKRt-ziIxur-wXSlxxHypMGa3SsVEs0w";
+
+
+const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+
+window.gapiLoaded = function () {
+  gapi.load("client:picker", initializeGapiClient); 
+};
+
+async function initializeGapiClient() {
+  await gapi.client.init({
+    apiKey: API_KEY,
+    discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+  });
+  gapiInited = true;
+}
+
+window.gisLoaded = function () {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: "", 
+  });
+  gisInited = true;
+};
+
+async function openDrivePicker() {
+  if (!gapiInited || !gisInited) {
+    alert("Google Drive not initialized yet. Try again in a moment.");
+    return;
+  }
+
+
+  tokenClient.callback = async (resp) => {
+    if (resp.error) {
+      console.error(resp);
+      return;
+    }
+    
+    
+    gapi.client.setToken(resp);
+
+    
+    createPicker(resp.access_token);
+  };
+
+  
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function createPicker(accessToken) {
+  const view = new google.picker.DocsView()
+    .setIncludeFolders(true)
+    .setSelectFolderEnabled(false)
+    .setMimeTypes("text/markdown,text/plain,application/octet-stream");
+
+  const picker = new google.picker.PickerBuilder()
+    .setDeveloperKey(API_KEY)
+    .setAppId(CLIENT_ID) 
+    .setOAuthToken(accessToken) 
+    .addView(view)
+    .setCallback(pickerCallback)
+    .build();
+
+  picker.setVisible(true);
+}
+
+async function pickerCallback(data) {
+  if (data.action !== google.picker.Action.PICKED) return;
+
+  const file = data.docs[0];
+  const fileId = file.id;
+  const fileName = file.name;
+
+  try {
+   
+    const res = await gapi.client.drive.files.get({
+      fileId: fileId,
+      alt: "media",
+    });
+
+    const content = res.body;
+
+    
+    notes[fileName] = content;
+    saveNotes();
+    addNoteToList(fileName);
+    openNote(fileName);
+
+    uploadModal.style.display = "none";
+  } catch (err) {
+    console.error("Error downloading file", err);
+    alert("Error downloading file content. Check console.");
+  }
+}
+
+
+
+
+
