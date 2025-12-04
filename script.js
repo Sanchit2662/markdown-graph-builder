@@ -286,7 +286,7 @@ function generateUntitledName() {
 
 newNoteBtn.addEventListener("click", () => {
   const filename = generateUntitledName();
-  const content = ""; // empty file
+  const content = "[[ ]]"; // empty file
 
   notes[filename] = content;
   addNoteToList(filename);
@@ -451,20 +451,13 @@ function extractLinks(content) {
     let target = match[1].trim();
     if (!target) continue;
 
-    // FIX: Use 'target', not 'targetName'
     let clean = target; 
-
-    // Logic: If link is "Untitled", check if "Untitled.md" exists
     if (!clean.endsWith(".md")) {
-      if (notes[clean + ".md"]) {
-        clean = clean + ".md";
-      }
+       // If standard link doesn't have .md, add it
+       if (notes[clean + ".md"]) clean = clean + ".md";
     }
 
-    // If the file exists in notes, add it
-    if (notes[clean]) {
-      targets.add(clean);
-    }
+    if (notes[clean]) targets.add(clean);
   }
 
   // 2. Wiki links: [[Note]]
@@ -474,17 +467,18 @@ function extractLinks(content) {
     let targetName = m2[1].trim();
     if (!targetName) continue;
     
-    // Check exact match or append .md
+    // Check exact match (e.g. "Untitled2.md")
     if (notes[targetName]) {
       targets.add(targetName);
-    } else if (notes[targetName + ".md"]) {
+    } 
+    // Check if user typed "Untitled2" but file is "Untitled2.md"
+    else if (notes[targetName + ".md"]) {
       targets.add(targetName + ".md");
     }
   }
 
   return Array.from(targets);
 }
-
 
 function buildKnowledgeGraph() {
   if (!graphContainer) return;
