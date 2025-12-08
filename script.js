@@ -1,8 +1,3 @@
-/* ============================================================
-   LEFT / RIGHT SIDEBAR RESIZE LOGIC
-   ============================================================ */
-
-// Get drag bars & panels
 const leftBar = document.getElementById("drag-left");
 const rightBar = document.getElementById("drag-right");
 
@@ -13,23 +8,20 @@ const rightPanel = document.querySelector(".sidebar-right");
 let isDragging = false;
 let currentDrag = null;
 
-// Start left sidebar drag
 leftBar.addEventListener("mousedown", () => {
   isDragging = true;
   currentDrag = "left";
 });
 
-// Start right sidebar drag
 rightBar.addEventListener("mousedown", () => {
   isDragging = true;
   currentDrag = "right";
 });
 
-// Handle drag movement
 document.addEventListener("mousemove", (e) => {
   if (!isDragging) return;
 
-  // Resize left sidebar
+  
   if (currentDrag === "left") {
     const newWidth = (e.clientX / window.innerWidth) * 100;
     if (newWidth > 10 && newWidth < 40) {
@@ -38,7 +30,7 @@ document.addEventListener("mousemove", (e) => {
     }
   }
 
-  // Resize right sidebar
+  
   if (currentDrag === "right") {
     const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
     if (newWidth > 10 && newWidth < 40) {
@@ -48,15 +40,13 @@ document.addEventListener("mousemove", (e) => {
   }
 });
 
-// Stop dragging on mouse up
+
 document.addEventListener("mouseup", () => {
   isDragging = false;
 });
 
 
-/* ============================================================
-   UPLOAD MODAL: OPEN / CLOSE / DROPZONE / MANUAL FILE INPUT
-   ============================================================ */
+
 
 const uploadBtn = document.getElementById("uploadBtn");
 const uploadModal = document.getElementById("uploadModal");
@@ -65,31 +55,25 @@ const dropArea = document.getElementById("dropArea");
 const fileInput = document.getElementById("fileInput");
 const driveBtn = document.getElementById("driveBtn");
 
-// Open upload modal
 uploadBtn.addEventListener("click", () => {
   uploadModal.style.display = "flex";
 });
 
-// Close upload modal
 closeModal.addEventListener("click", () => {
   uploadModal.style.display = "none";
 });
 
-// Click drop area → open file explorer
 dropArea.addEventListener("click", () => fileInput.click());
 
-// Change border on drag
 dropArea.addEventListener("dragover", (e) => {
   e.preventDefault();
   dropArea.style.borderColor = "#6a6df0";
 });
 
-// Restore border
 dropArea.addEventListener("dragleave", () => {
   dropArea.style.borderColor = "#3a3b44";
 });
 
-// File dropped → handle file
 dropArea.addEventListener("drop", (e) => {
   e.preventDefault();
   dropArea.style.borderColor = "#3a3b44";
@@ -98,17 +82,13 @@ dropArea.addEventListener("drop", (e) => {
   handleFile(file);
 });
 
-// Manual file selection
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0];
   handleFile(file);
 });
 
 
-/* ============================================================
-   NOTES + FOLDERS DATA MODEL
-   - notes is now: { "__global": {file: content}, "FolderName": {file: content} }
-   ============================================================ */
+
 
 const notesList = document.getElementById("notesList");
 const editor = document.getElementById("editor");
@@ -120,14 +100,12 @@ let notes = JSON.parse(localStorage.getItem("notes")) || {};
 let currentFolder = "__global"; // "__global" = global notes
 let currentNote = null;
 
-// Ensure notes has the new nested structure
 function initializeNotesStructure() {
-  // If already nested with __global, keep as is
+  
   if (notes.__global && typeof notes.__global === "object") {
     return;
   }
 
-  // Detect old flat format: { "file.md": "content", ... }
   const values = Object.values(notes);
   const isFlat =
     values.length === 0 ||
@@ -136,7 +114,7 @@ function initializeNotesStructure() {
   if (isFlat) {
     notes = { "__global": { ...notes } };
   } else {
-    // Mixed / unknown → make sure __global exists
+    
     if (!notes.__global) {
       notes.__global = {};
     }
@@ -185,9 +163,7 @@ function getNoteContentByName(filename) {
 }
 
 
-/* ============================================================
-   MAIN FILE HANDLER (UPLOADS .md & LOADS INTO APP)
-   ============================================================ */
+
 
 function handleFile(file) {
   if (!file || !file.name.endsWith(".md")) {
@@ -214,11 +190,8 @@ function handleFile(file) {
 }
 
 
-/* ============================================================
-   RIGHT CLICK CONTEXT MENU (RENAME / DELETE)
-   ============================================================ */
 
-// Create custom context menu
+
 const contextMenu = document.createElement("div");
 contextMenu.className = "note-context-menu";
 contextMenu.style.cssText = `
@@ -239,7 +212,7 @@ contextMenu.innerHTML = `
 
 document.body.appendChild(contextMenu);
 
-// Styles for context menu items
+
 const style = document.createElement("style");
 style.textContent = `
   .ctx-item {
@@ -253,15 +226,12 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Hide menu on click anywhere
 document.addEventListener("click", () => {
   contextMenu.style.display = "none";
 });
 
 
-/* ============================================================
-   RENDER FOLDERS + NOTES LIST
-   ============================================================ */
+
 
 function renderFoldersList() {
   if (!foldersList) return;
@@ -310,10 +280,10 @@ function addNoteToList(filename) {
   li.classList.add("note-item");
   li.textContent = filename;
 
-  // Click to open note
+  
   li.addEventListener("click", () => openNote(filename));
 
-  // Right click → context menu
+  
   li.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     contextMenu.dataset.target = filename;
@@ -326,9 +296,7 @@ function addNoteToList(filename) {
 }
 
 
-/* ============================================================
-   OPEN NOTE
-   ============================================================ */
+
 
 function openNote(filename) {
   const folder = findFolderForNote(filename);
@@ -340,11 +308,11 @@ function openNote(filename) {
   currentFolder = folder;
   currentNote = filename;
 
-  // Update folder UI + notes list
+  
   renderFoldersList();
   renderNotesForCurrentFolder();
 
-  // Highlight active note
+
   document.querySelectorAll(".note-item").forEach((n) => {
     n.classList.remove("active");
     if (n.textContent === filename) n.classList.add("active");
@@ -352,24 +320,18 @@ function openNote(filename) {
 
   editor.value = notes[currentFolder][filename] || "";
 
-  // Persist last opened
+  
   localStorage.setItem("lastOpenedNote", filename);
 
-  // Update preview + graph
+  
   updatePreview();
   buildKnowledgeGraph();
   highlightActiveNode(filename);
 }
 
 
-// Click empty area → deselect and clear editor
+
 document.addEventListener("click", (e) => {
-  // Do NOT reset if clicked on:
-  // - a note
-  // - a folder
-  // - the editor
-  // - the preview pane
-  // - anywhere in the center panel
   if (
     e.target.closest(".note-item") ||
     e.target.closest(".folder-item") ||
@@ -381,7 +343,7 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  // Clear active note highlight
+
   document.querySelectorAll(".note-item.active")
     .forEach((n) => n.classList.remove("active"));
 
@@ -389,7 +351,7 @@ document.addEventListener("click", (e) => {
   editor.value = "";
   updatePreview();
 
-  // Switch to GLOBAL notes
+  
   currentFolder = "__global";
   renderFoldersList();
   renderNotesForCurrentFolder();
@@ -399,7 +361,7 @@ document.addEventListener("click", (e) => {
 
 
 
-// Save on typing
+
 editor.addEventListener("input", () => {
   if (currentNote && currentFolder && notes[currentFolder]) {
     notes[currentFolder][currentNote] = editor.value;
@@ -413,9 +375,7 @@ editor.addEventListener("input", () => {
 });
 
 
-/* ============================================================
-   NEW NOTE BUTTON (CREATES UNTITLED.md)
-   ============================================================ */
+
 
 const newNoteBtn = document.querySelector(".new-note-btn");
 
@@ -437,7 +397,7 @@ function generateUntitledName() {
   return name;
 }
 
-// Create new note
+
 newNoteBtn.addEventListener("click", () => {
   const filename = generateUntitledName();
   const content = "[[ ]]";
@@ -451,20 +411,18 @@ newNoteBtn.addEventListener("click", () => {
 });
 
 
-/* ============================================================
-   NEW FOLDER BUTTON
-   ============================================================ */
+
 
 function setCurrentFolder(folder) {
   currentFolder = folder;
   currentNote = null;
 
-  // update UI
+  
   renderFoldersList();
   renderNotesForCurrentFolder();
   updateEmptyText();
 
-  // clear editor + preview
+  
   editor.value = "";
   updatePreview();
 }
@@ -491,9 +449,7 @@ newFolderBtn.addEventListener("click", () => {
 });
 
 
-/* ============================================================
-   CONTEXT MENU ACTIONS: RENAME / DELETE NOTE
-   ============================================================ */
+
 
 contextMenu.addEventListener("click", (e) => {
   const action = e.target.dataset.action;
@@ -503,7 +459,7 @@ contextMenu.addEventListener("click", (e) => {
   const folder = findFolderForNote(filename);
   if (!folder) return;
 
-  // ---------- RENAME ----------
+  
   if (action === "rename") {
     const newName = prompt("Rename note:", filename);
     if (!newName || newName.trim() === "" || !newName.endsWith(".md")) {
@@ -520,7 +476,7 @@ contextMenu.addEventListener("click", (e) => {
     delete notes[folder][filename];
     saveNotes();
 
-    // Update list UI
+    
     [...notesList.children].forEach((li) => {
       if (li.textContent === filename) {
         li.textContent = clean;
@@ -530,7 +486,7 @@ contextMenu.addEventListener("click", (e) => {
     openNote(clean);
   }
 
-  // ---------- DELETE ----------
+  
   if (action === "delete") {
     if (!confirm(`Delete "${filename}" ?`)) return;
 
@@ -550,18 +506,14 @@ contextMenu.addEventListener("click", (e) => {
 });
 
 
-/* ============================================================
-   LOCAL STORAGE SAVE HELPERS
-   ============================================================ */
+
 
 function saveNotes() {
   localStorage.setItem("notes", JSON.stringify(notes));
 }
 
 
-/* ============================================================
-   EMPTY LIST PLACEHOLDER HANDLING
-   ============================================================ */
+
 
 function updateEmptyText() {
   if (!emptyText) return;
@@ -573,9 +525,7 @@ function updateEmptyText() {
 }
 
 
-/* ============================================================
-   MARKDOWN PREVIEW (Live rendered preview using marked.js)
-   ============================================================ */
+
 
 const previewPane = document.getElementById("preview");
 
@@ -601,9 +551,7 @@ function updatePreview() {
 }
 
 
-/* ============================================================
-   KNOWLEDGE GRAPH CREATION (VIS.JS)
-   ============================================================ */
+
 
 let graphUpdateTimeout = null;
 
@@ -615,7 +563,7 @@ let network = null;
 let nodesDS = null;
 let edgesDS = null;
 
-// Extract links from markdown text
+
 function extractLinks(content) {
   const targets = new Set();
 
@@ -630,7 +578,7 @@ function extractLinks(content) {
     return null;
   }
 
-  // Markdown links [text](file.md)
+  
   const mdRegex = /\[[^\]]+\]\(([^)]+)\)/g;
   let match;
   while ((match = mdRegex.exec(content)) !== null) {
@@ -639,7 +587,7 @@ function extractLinks(content) {
     if (resolved) targets.add(resolved);
   }
 
-  // Wiki links [[file]]
+  
   const wikiRegex = /\[\[([^\]]+)\]\]/g;
   let m2;
   while ((m2 = wikiRegex.exec(content)) !== null) {
@@ -675,7 +623,7 @@ function buildKnowledgeGraph() {
     degreeCount[name] = 0;
   });
 
-  // Build edges
+  
   fileNames.forEach((source) => {
     const content = getNoteContentByName(source) || "";
     const targets = extractLinks(content);
@@ -689,7 +637,7 @@ function buildKnowledgeGraph() {
     });
   });
 
-  // Build nodes
+  
   fileNames.forEach((name) => {
     const baseLabel = name.replace(".md", "");
     const deg = degreeCount[name];
@@ -742,7 +690,6 @@ function buildKnowledgeGraph() {
   if (network) network.destroy();
   network = new vis.Network(graphContainer, data, options);
 
-  // Click node → open note
   network.on("click", (params) => {
     if (params.nodes.length > 0) {
       const id = params.nodes[0];
@@ -750,7 +697,7 @@ function buildKnowledgeGraph() {
     }
   });
 
-  // Hover node → show snippet
+  
   network.on("selectNode", (params) => {
     const id = params.nodes[0];
     showGraphSnippet(id);
@@ -805,9 +752,7 @@ function highlightActiveNode(filename) {
 }
 
 
-/* ============================================================
-   SEARCH BAR → FILTER NOTES + HIGHLIGHT GRAPH
-   ============================================================ */
+
 
 const searchInput = document.getElementById("searchNotes");
 
@@ -829,7 +774,7 @@ if (searchInput) {
   searchInput.addEventListener("input", (e) => {
     const q = e.target.value.toLowerCase();
 
-  // --- Search NOTES ---
+  
     [...notesList.children].forEach((li) => {
         const text = li.textContent.toLowerCase();
         const match = text.includes(q);
@@ -842,21 +787,21 @@ if (searchInput) {
         }
   });
 
-  // --- Search FOLDERS ---
+
     [...foldersList.children].forEach((li) => {
         const text = li.textContent.toLowerCase();
         const match = text.includes(q);
         li.style.display = match ? "" : "none";
   });
 
-  // --- Highlight in graph ---
+  
     updateGraphSearchHighlight(q);
 });
 
 }
 
 
-// Save last opened note on click
+
 notesList.addEventListener("click", (e) => {
   if (e.target.classList.contains("note-item")) {
     const name = e.target.textContent.trim();
@@ -865,9 +810,7 @@ notesList.addEventListener("click", (e) => {
 });
 
 
-/* ============================================================
-   KEYBOARD SHORTCUTS (BOLD, ITALIC, HEADING, NEW NOTE, SAVE)
-   ============================================================ */
+
 
 function wrapSelection(before, after) {
   const start = editor.selectionStart;
@@ -890,7 +833,7 @@ function wrapSelection(before, after) {
   }
 }
 
-// Convert current line into a heading
+
 function formatHeading() {
   const start = editor.selectionStart;
   const value = editor.value;
@@ -911,7 +854,7 @@ function formatHeading() {
   }
 }
 
-// Shortcut listener
+
 document.addEventListener("keydown", (e) => {
   const target = e.target;
   const isEditor = target === editor;
@@ -952,15 +895,13 @@ document.addEventListener("keydown", (e) => {
 });
 
 
-/* ============================================================
-   EXPORT / IMPORT NOTES (JSON)
-   ============================================================ */
+
 
 const exportBtn = document.getElementById("exportBtn");
 const importBtn = document.getElementById("importBtn");
 const importInput = document.getElementById("importInput");
 
-// Export → JSON file (entire structure: folders + global)
+
 if (exportBtn) {
   exportBtn.addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(notes, null, 2)], {
@@ -989,7 +930,7 @@ function importIntoNotes(imported) {
     );
 
   if (hasFoldersShape) {
-    // Treat as { folderName: { filename: content } }
+    
     Object.keys(imported).forEach((folder) => {
       if (folder === "") return;
       if (!notes[folder]) notes[folder] = {};
@@ -1003,7 +944,7 @@ function importIntoNotes(imported) {
       });
     });
   } else {
-    // Old flat format → import into global
+    
     ensureFolder("__global");
     Object.keys(imported).forEach((filename) => {
       if (!noteExists(filename)) {
@@ -1013,7 +954,7 @@ function importIntoNotes(imported) {
   }
 }
 
-// Import JSON → merge into notes
+
 if (importBtn && importInput) {
   importBtn.addEventListener("click", () => {
     importInput.click();
@@ -1043,9 +984,7 @@ if (importBtn && importInput) {
 }
 
 
-/* ============================================================
-   RESIZE EDITOR ↔ PREVIEW (Middle drag bar)
-   ============================================================ */
+
 
 const editorArea = document.querySelector(".editor-area");
 const previewArea = document.querySelector(".preview-pane");
@@ -1053,12 +992,12 @@ const dragEP = document.getElementById("drag-editor-preview");
 
 let isDraggingEP = false;
 
-// Start drag
+
 dragEP.addEventListener("mousedown", () => {
   isDraggingEP = true;
 });
 
-// Drag movement
+
 document.addEventListener("mousemove", (e) => {
   if (!isDraggingEP) return;
 
@@ -1074,15 +1013,13 @@ document.addEventListener("mousemove", (e) => {
   previewArea.style.width = 100 - editorPercent + "%";
 });
 
-// Stop drag
+
 document.addEventListener("mouseup", () => {
   isDraggingEP = false;
 });
 
 
-/* ============================================================
-   MODAL CLICK BEHAVIOR (click outside → close)
-   ============================================================ */
+
 
 uploadModal.addEventListener("click", (e) => {
   if (e.target === uploadModal) uploadModal.style.display = "none";
@@ -1093,9 +1030,7 @@ document
   .addEventListener("click", (e) => e.stopPropagation());
 
 
-/* ============================================================
-   GOOGLE DRIVE PICKER INTEGRATION
-   ============================================================ */
+
 
 const CLIENT_ID =
   "364956694336-71kq54bm418a6fs159aq0uog4dpp5472.apps.googleusercontent.com";
@@ -1107,12 +1042,12 @@ let tokenClient;
 let gapiInited = false;
 let gisInited = false;
 
-// Load Google API
+
 window.gapiLoaded = function () {
   gapi.load("client:picker", initializeGapiClient);
 };
 
-// Initialize GAPI client
+
 async function initializeGapiClient() {
   await gapi.client.init({
     apiKey: API_KEY,
@@ -1123,7 +1058,7 @@ async function initializeGapiClient() {
   gapiInited = true;
 }
 
-// Load Google Identity Services
+
 window.gisLoaded = function () {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
@@ -1133,7 +1068,7 @@ window.gisLoaded = function () {
   gisInited = true;
 };
 
-// Open Google Drive picker window
+
 async function openDrivePicker() {
   if (!gapiInited || !gisInited) {
     alert("Google Drive not initialized yet. Try again in a moment.");
@@ -1153,10 +1088,11 @@ async function openDrivePicker() {
   tokenClient.requestAccessToken({ prompt: "consent" });
 }
 
-// Build Google Picker
+
 function createPicker(accessToken) {
   const view = new google.picker.DocsView()
-    .setIncludeFolders(true)
+
+  .setIncludeFolders(true)
     .setSelectFolderEnabled(false)
     .setMimeTypes(
       "text/markdown,text/plain,application/octet-stream"
@@ -1173,7 +1109,7 @@ function createPicker(accessToken) {
   picker.setVisible(true);
 }
 
-// Callback when file is selected from Drive
+
 async function pickerCallback(data) {
   if (data.action !== google.picker.Action.PICKED) return;
 
@@ -1202,15 +1138,13 @@ async function pickerCallback(data) {
   }
 }
 
-// Hook Drive button
+
 driveBtn.addEventListener("click", () => {
   openDrivePicker();
 });
 
 
-/* ============================================================
-   RESET BUTTON (CLEARS ALL NOTES COMPLETELY)
-   ============================================================ */
+
 
 const resetBtn = document.getElementById("resetBtn");
 
@@ -1247,14 +1181,12 @@ resetBtn.addEventListener("click", () => {
 });
 
 
-/* ============================================================
-   APP INITIALIZATION
-   ============================================================ */
+
 
 window.addEventListener("DOMContentLoaded", () => {
   initializeNotesStructure();
 
-  // Ensure __global exists
+  
   ensureFolder("__global");
 
   renderFoldersList();
