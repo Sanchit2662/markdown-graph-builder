@@ -362,6 +362,8 @@ body {
   opacity: 0.5;
   font-size: 14px;
 }
+/* DARKER SCROLLBAR FOR PREVIEW */
+
 
 /* Rendered markdown styles */
 .preview-pane h1,
@@ -390,6 +392,7 @@ body {
   border-radius: 6px;
   overflow-x: auto;
 }
+
 
 /* Graph container */
 .graph-network {
@@ -474,4 +477,21 @@ body {
 }
 .folders-notes-wrapper {
   margin-bottom: 15px;
+}
+
+.editor-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editor-area::-webkit-scrollbar-track {
+  background: #07080b;   
+}
+
+.editor-area::-webkit-scrollbar-thumb {
+  background: #1a1b20;   
+  border-radius: 10px;
+}
+
+.editor-area::-webkit-scrollbar-thumb:hover {
+  background: #2a2b32;   
 }
