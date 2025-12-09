@@ -922,3 +922,164 @@ window.addEventListener("DOMContentLoaded", () => {
   const last = localStorage.getItem("lastOpenedNote");
   if (last && noteExists(last)) openNote(last);
 });
+
+
+/* ============================================================
+   MODAL BACKDROP CLICK CLOSE
+============================================================ */
+
+uploadModal.addEventListener("click", (e) => {
+  if (e.target === uploadModal) uploadModal.style.display = "none";
+});
+
+document.querySelector(".modal-content")
+  .addEventListener("click", e => e.stopPropagation());
+
+  
+/* ============================================================
+   GOOGLE DRIVE PICKER INTEGRATION
+   Feature: Import notes from Google Drive
+============================================================ */
+
+const CLIENT_ID =
+  "364956694336-71kq54bm418a6fs159aq0uog4dpp5472.apps.googleusercontent.com";
+const API_KEY = "AIzaSyCiKRt-ziIxur-wXSlxxHypMGa3SsVEs0w";
+
+const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+
+window.gapiLoaded = () => gapi.load("client:picker", initializeGapiClient);
+
+async function initializeGapiClient() {
+  await gapi.client.init({
+    apiKey: API_KEY,
+    discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+  });
+  gapiInited = true;
+}
+window.gisLoaded = () => {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: "",
+  });
+  gisInited = true;
+};
+
+// Open Google Drive Picker
+async function openDrivePicker() {
+  if (!gapiInited || !gisInited) return alert("Drive not ready");
+
+  tokenClient.callback = async (resp) => {
+    if (resp.error) return console.error(resp);
+    gapi.client.setToken(resp);
+    createPicker(resp.access_token);
+  };
+
+  tokenClient.requestAccessToken({ prompt: "consent" });
+}
+function createPicker(token) {
+  const view = new google.picker.DocsView()
+    .setIncludeFolders(true)
+    .setSelectFolderEnabled(false)
+    .setMimeTypes("text/markdown,text/plain,application/octet-stream");
+
+  const picker = new google.picker.PickerBuilder()
+    .setDeveloperKey(API_KEY)
+    .setAppId(CLIENT_ID)
+    .setOAuthToken(token)
+    .addView(view)
+    .setCallback(pickerCallback)
+    .build();
+
+  picker.setVisible(true);
+}
+
+async function pickerCallback(data) {
+  if (data.action !== google.picker.Action.PICKED) return;
+
+  const file = data.docs[0];
+
+  const res = await gapi.client.drive.files.get({
+    fileId: file.id,
+    alt: "media",
+  });
+  
+  ensureFolder(currentFolder);
+  notes[currentFolder][file.name] = res.body;
+
+  saveNotes();
+  renderNotesForCurrentFolder();
+  openNote(file.name);
+
+  uploadModal.style.display = "none";
+}
+
+driveBtn.addEventListener("click", openDrivePicker);
+
+
+/* ============================================================
+   KEYBOARD SHORTCUTS
+   Feature: Ctrl+B, Ctrl+I, Ctrl+H, Ctrl+N, Ctrl+S
+============================================================ */
+
+function wrapSelection(before, after) {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+
+  const selected = editor.value.slice(start, end);
+  const full = before + selected + after;
+
+  editor.value =
+    editor.value.slice(0, start) + full + editor.value.slice(end);
+
+  editor.selectionStart = start + before.length;
+  editor.selectionEnd = start + before.length + selected.length;
+
+  if (currentNote) {
+    notes[currentFolder][currentNote] = editor.value;
+    saveNotes();
+    updatePreview();
+  }
+}
+
+function formatHeading() {
+  const start = editor.selectionStart;
+  const text = editor.value;
+  const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+  const lineEnd = text.indexOf("\n", start);
+  const endPos = lineEnd === -1 ? text.length : lineEnd;
+
+  const line = text.slice(lineStart, endPos);
+  const newLine = line.startsWith("#") ? line : "# " + line;
+
+  editor.value = text.slice(0, lineStart) + newLine + text.slice(endPos);
+  editor.selectionStart = editor.selectionEnd = start + 2;
+
+  if (currentNote) {
+    notes[currentFolder][currentNote] = editor.value;
+    saveNotes();
+    updatePreview();
+  }
+}
+
+// Shortcut handler
+document.addEventListener("keydown", (e) => {
+  const key = e.key.toLowerCase();
+  const isEditor = e.target === editor;
+
+  if (e.ctrlKey || e.metaKey) {
+    if (key === "n") { e.preventDefault(); newNoteBtn.click(); }
+    if (key === "s") { e.preventDefault(); saveNotes(); }
+    if (key === "f") { e.preventDefault(); searchInput.focus(); }
+
+    if (isEditor) {
+      if (key === "b") { e.preventDefault(); wrapSelection("**", "**"); }
+      if (key === "i") { e.preventDefault(); wrapSelection("_", "_"); }
+      if (key === "h") { e.preventDefault(); formatHeading(); }
+    }
+  }
+});
